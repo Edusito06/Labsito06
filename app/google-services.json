@@ -1,0 +1,21 @@
+{
+  "project_info": {
+    "project_number": "000000000000",
+    "project_id": "REEMPLAZAR-con-tu-google-services-json",
+    "storage_bucket": "REEMPLAZAR.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+        "android_client_info": {
+          "package_name": "com.lab6.iot"
+        }
+      },
+      "api_key": [
+        { "current_key": "REEMPLAZAR" }
+      ]
+    }
+  ],
+  "configuration_version": "1"
+}

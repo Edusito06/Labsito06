@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">IoT Monitor</string>
+
+    <!-- REEMPLAZAR con los datos de Meta for Developers -->
+    <string name="facebook_app_id">TU_FACEBOOK_APP_ID</string>
+    <string name="facebook_client_token">TU_FACEBOOK_CLIENT_TOKEN</string>
+    <string name="fb_login_protocol_scheme">fbTU_FACEBOOK_APP_ID</string>
+</resources>
