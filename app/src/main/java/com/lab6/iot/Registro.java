@@ -1,9 +1,12 @@
 package com.lab6.iot;
 
-/** Modelo guardado en Realtime Database: registros/{uid}/{id} */
+import com.google.firebase.firestore.DocumentId;
+
+/** Modelo guardado en Cloud Firestore: usuarios/{uid}/registros/{id} */
 public class Registro {
     public static final String[] TIPOS = {"Temperatura", "Humedad", "Luz"};
 
+    @DocumentId
     public String id;
     public String tipo;
     public double valor;

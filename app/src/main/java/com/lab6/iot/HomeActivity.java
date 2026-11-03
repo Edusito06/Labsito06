@@ -10,7 +10,6 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -19,22 +18,22 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.facebook.login.LoginManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class HomeActivity extends AppCompatActivity implements RegistroAdapter.Listener {
 
-    private DatabaseReference ref;
+    private CollectionReference col;
     private final List<Registro> lista = new ArrayList<>();
     private RegistroAdapter adapter;
-    private ValueEventListener listener;
+    private ListenerRegistration registro;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,7 +49,9 @@ public class HomeActivity extends AppCompatActivity implements RegistroAdapter.L
         String nombre = user.getEmail() != null ? user.getEmail() : user.getDisplayName();
         ((TextView) findViewById(R.id.tvUsuario)).setText("Sesión: " + nombre);
 
-        ref = FirebaseDatabase.getInstance().getReference("registros").child(user.getUid());
+        // usuarios/{uid}/registros/{id}
+        col = FirebaseFirestore.getInstance()
+                .collection("usuarios").document(user.getUid()).collection("registros");
 
         RecyclerView rv = findViewById(R.id.rvRegistros);
         rv.setLayoutManager(new LinearLayoutManager(this));
@@ -65,35 +66,36 @@ public class HomeActivity extends AppCompatActivity implements RegistroAdapter.L
             LoginManager.getInstance().logOut();
             irAlInicio();
         });
+    }
 
-        // READ: escucha cambios en tiempo real
-        listener = new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                lista.clear();
-                for (DataSnapshot child : snapshot.getChildren()) {
-                    Registro r = child.getValue(Registro.class);
-                    if (r != null) {
-                        r.id = child.getKey();
-                        lista.add(r);
-                    }
-                }
-                adapter.notifyDataSetChanged();
+    // READ en tiempo real: el listener se activa en onStart y se libera en onStop (ahorra batería)
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (col == null) return;
+        registro = col.addSnapshotListener((snapshot, error) -> {
+            if (error != null) {
+                Toast.makeText(this, "Error: " + error.getMessage(), Toast.LENGTH_LONG).show();
+                return;
             }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(HomeActivity.this, "Error: " + error.getMessage(),
-                        Toast.LENGTH_LONG).show();
+            lista.clear();
+            for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                Registro r = doc.toObject(Registro.class);
+                if (r != null) lista.add(r);
             }
-        };
-        ref.addValueEventListener(listener);
+            // más recientes primero
+            Collections.sort(lista, (a, b) -> Long.compare(b.fecha, a.fecha));
+            adapter.notifyDataSetChanged();
+        });
     }
 
     @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (ref != null && listener != null) ref.removeEventListener(listener);
+    protected void onStop() {
+        super.onStop();
+        if (registro != null) {
+            registro.remove();
+            registro = null;
+        }
     }
 
     /** CREATE (registro == null) o UPDATE (registro != null) */
@@ -122,14 +124,14 @@ public class HomeActivity extends AppCompatActivity implements RegistroAdapter.L
                     }
                     String tipo = (String) sp.getSelectedItem();
                     if (registro == null) {
-                        String id = ref.push().getKey();
-                        ref.child(id).setValue(new Registro(id, tipo, valor, System.currentTimeMillis()))
-                                .addOnFailureListener(e -> error(e));
+                        // add(): Firestore genera el ID
+                        col.add(new Registro(null, tipo, valor, System.currentTimeMillis()))
+                                .addOnFailureListener(this::error);
                     } else {
                         registro.tipo = tipo;
                         registro.valor = valor;
-                        ref.child(registro.id).setValue(registro)
-                                .addOnFailureListener(e -> error(e));
+                        col.document(registro.id).set(registro)
+                                .addOnFailureListener(this::error);
                     }
                 })
                 .setNegativeButton("Cancelar", null)
@@ -148,7 +150,7 @@ public class HomeActivity extends AppCompatActivity implements RegistroAdapter.L
                 .setTitle("Eliminar")
                 .setMessage("¿Eliminar este registro?")
                 .setPositiveButton("Eliminar", (d, w) ->
-                        ref.child(r.id).removeValue().addOnFailureListener(this::error))
+                        col.document(r.id).delete().addOnFailureListener(this::error))
                 .setNegativeButton("Cancelar", null)
                 .show();
     }

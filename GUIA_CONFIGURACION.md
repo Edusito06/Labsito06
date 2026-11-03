@@ -104,7 +104,7 @@ Las huellas salen en la pestaña *Run* de abajo.
 
 ---
 
-## Paso 4. Activar Authentication, Database y descargar el JSON
+## Paso 4. Activar Authentication y Firestore, y descargar el JSON
 
 ### 4.1 Correo/contraseña y Google
 - [ ] Menú izquierdo → **Compilación (Build) → Authentication → Comenzar**.
@@ -113,30 +113,36 @@ Las huellas salen en la pestaña *Run* de abajo.
 - [ ] **Google**: Activar → **Nombre público del proyecto**: lo que sea → **Correo de asistencia**: elige el tuyo → **Guardar**.
 - [ ] **Facebook**: déjalo para el Paso 5.
 
-### 4.2 Realtime Database
-- [ ] Menú izquierdo → **Compilación → Realtime Database → Crear base de datos**.
-- [ ] Ubicación: la que sale por defecto (Estados Unidos) → **Siguiente**.
-- [ ] Modo: **Bloqueado (Locked mode)** → **Habilitar**.
+### 4.2 Desactivar la protección de enumeración de correo (recomendado en clase)
+Si no lo haces, el registro y la recuperación de contraseña con correo pueden dar errores raros.
+- [ ] Authentication → pestaña **Configuración (Settings)** → **Acciones del usuario (User actions)**
+  → desmarca **Protección contra la enumeración de correos electrónicos** → **Guardar**.
+  Si no ves esa opción, déjalo como está.
+
+### 4.3 Cloud Firestore (la base de datos que se vio en clase)
+- [ ] Menú izquierdo → **Compilación → Firestore Database → Crear base de datos**.
+- [ ] Ubicación: la que sale por defecto → **Siguiente**.
+- [ ] Modo: **Iniciar en modo de producción** (bloqueado) → **Crear**.
 - [ ] Pestaña **Reglas (Rules)** → borra todo y pega esto → **Publicar**:
 
-```json
-{
-  "rules": {
-    "registros": {
-      "$uid": {
-        ".read": "auth.uid === $uid",
-        ".write": "auth.uid === $uid"
-      }
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /usuarios/{uid}/registros/{registroId} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
     }
   }
 }
 ```
 
-### 4.3 Descargar `google-services.json` (siempre al final)
+Cada usuario solo puede leer y escribir sus propios registros. Los datos quedan así:
+colección `usuarios` → documento `<uid>` → colección `registros` → un documento por registro.
+
+### 4.4 Descargar `google-services.json` (siempre al final)
 - [ ] Engranaje → **Configuración del proyecto → General → Tus apps → tu app Android → botón `google-services.json`**.
 - [ ] Ábrelo con el Bloc de notas y busca `"oauth_client"`: debe tener una entrada con `"client_type": 3`.
-  Y busca `"firebase_url"`: debe aparecer. Si falta alguno, vuelve a revisar el SHA-1 y que Google esté
-  activado en Authentication y vuelve a descargar.
+  Si falta, revisa el SHA-1 y que Google esté activado en Authentication, y vuelve a descargar.
 - [ ] Copia ese archivo y reemplaza este: `Labsito06\app\google-services.json`
   (dentro de la carpeta `app`, al lado de `build.gradle`).
 - [ ] En Android Studio: **File → Sync Project with Gradle Files** (o el ícono del elefante).
@@ -242,7 +248,7 @@ activa *Opciones de desarrollador → Depuración USB* y conéctalo.
 - [ ] **Continuar con Google** → elige tu cuenta → entra.
 - [ ] **Continuar con Facebook** → entra.
 - [ ] **Agregar** 6 o más registros de distintos tipos. **Editar** uno y **Borrar** otro.
-- [ ] En Firebase → **Realtime Database → Datos**: aparece `registros → <uid> → <id>` con tipo, valor y fecha. Los cambios se reflejan.
+- [ ] En Firebase → **Firestore Database → Datos**: aparece `usuarios → <uid> → registros → <id>` con tipo, valor y fecha. Los cambios se reflejan.
 - [ ] **Gráficos**: salen el gráfico de líneas y el de barras. Cambia el filtro entre Todos / Temperatura / Humedad / Luz y los dos cambian.
 - [ ] Cierra la app del todo, ábrela otra vez: sigue con la sesión iniciada y los datos están.
 
@@ -254,7 +260,7 @@ activa *Opciones de desarrollador → Depuración USB* y conéctalo.
 
 1. Paso 2 → obtener su SHA-1 y SHA-256.
 2. Firebase → Configuración del proyecto → Tus apps → **Agregar huella digital** (SHA-1 y SHA-256 nuevos).
-3. Paso 4.3 → **descargar otra vez** `google-services.json` y reemplazarlo en la carpeta `app`.
+3. Paso 4.4 → **descargar otra vez** `google-services.json` y reemplazarlo en la carpeta `app`.
 4. Paso 5.6 → calcular el hash con ese SHA-1 y agregarlo en Meta → **Hashes de clave** (puede haber varios).
 5. Sync y Run.
 
@@ -270,7 +276,7 @@ Dónde está cada criterio de la rúbrica, por si tienes que arreglar algo rápi
 |---|---|
 | 1. Interfaz de inicio | `MainActivity.java`, `res\layout\activity_main.xml`, `res\drawable\ic_logo.xml` |
 | 2. Inicio de sesión | `LoginActivity.java` (correo, Google, Facebook), `RegisterActivity.java`, `ResetActivity.java` |
-| 3. Firebase Database | `HomeActivity.java` (crear, leer, editar, borrar), `Registro.java`, `RegistroAdapter.java` |
+| 3. Firebase Database (Firestore) | `HomeActivity.java` (`add`, `addSnapshotListener`, `set`, `delete`), `Registro.java`, `RegistroAdapter.java` |
 | 4. Gráficos | `ChartsActivity.java`, `res\layout\activity_charts.xml` |
 | 5. Funcionalidad | Toda la app. Revisa el Paso 7 completo. |
 
@@ -285,9 +291,9 @@ Dónde está cada criterio de la rúbrica, por si tienes que arreglar algo rápi
 | Facebook: "Invalid key hash" | Falta el hash en Meta o se calculó con otro SHA-1. Pega el hash que muestra el mensaje de error. |
 | Facebook: "App not active" o no deja entrar | La cuenta no tiene rol en la app de Meta (modo desarrollo). Agrégala como Probador. |
 | Facebook: abre y se queda en blanco o se cierra | Revisa que `fb_login_protocol_scheme` sea `fb` + App ID y que la URI de redirección esté pegada en Meta. |
-| `Permission denied` al guardar | No hay sesión iniciada o las reglas no se publicaron (Paso 4.2). |
+| `Permission denied` al guardar | No hay sesión iniciada o las reglas de Firestore no se publicaron (Paso 4.3). |
 | Al crear usuario: "The email address is badly formatted" | El correo está mal escrito. |
-| Todo falla con "API key not valid" o aparece `REEMPLAZAR` | Sigues con el `google-services.json` de relleno (Paso 4.3). |
+| Todo falla con "API key not valid" o aparece `REEMPLAZAR` | Sigues con el `google-services.json` de relleno (Paso 4.4). |
 | `gradlew.bat`: "JAVA_HOME is not set" | Ejecuta antes `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"` en la misma ventana de PowerShell. Si Android Studio está en otra ruta: `Get-ChildItem "C:\Program Files" -Recurse -Filter java.exe -ErrorAction SilentlyContinue` |
 | `keytool` no se reconoce como comando | Usa la ruta completa de la Opción B del Paso 2, con `&` y las comillas. |
 | `Could not find com.github.PhilJay:MPAndroidChart` | Sin internet, o JitPack caído. Reintenta el Sync. |

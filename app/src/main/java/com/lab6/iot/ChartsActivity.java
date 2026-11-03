@@ -6,7 +6,6 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.github.mikephil.charting.charts.BarChart;
@@ -20,10 +19,9 @@ import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,6 +35,7 @@ public class ChartsActivity extends AppCompatActivity {
     private LineChart lineChart;
     private BarChart barChart;
     private Spinner spFiltro;
+    private ListenerRegistration listener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,23 +62,24 @@ public class ChartsActivity extends AppCompatActivity {
         });
 
         String uid = FirebaseAuth.getInstance().getCurrentUser().getUid();
-        FirebaseDatabase.getInstance().getReference("registros").child(uid)
-                .addValueEventListener(new ValueEventListener() {
-                    @Override
-                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                        datos.clear();
-                        for (DataSnapshot c : snapshot.getChildren()) {
-                            Registro r = c.getValue(Registro.class);
-                            if (r != null) datos.add(r);
-                        }
-                        Collections.sort(datos, (a, b) -> Long.compare(a.fecha, b.fecha));
-                        dibujar();
+        listener = FirebaseFirestore.getInstance()
+                .collection("usuarios").document(uid).collection("registros")
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null || snapshot == null) return;
+                    datos.clear();
+                    for (DocumentSnapshot doc : snapshot.getDocuments()) {
+                        Registro r = doc.toObject(Registro.class);
+                        if (r != null) datos.add(r);
                     }
-
-                    @Override
-                    public void onCancelled(@NonNull DatabaseError error) {
-                    }
+                    Collections.sort(datos, (a, b) -> Long.compare(a.fecha, b.fecha));
+                    dibujar();
                 });
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (listener != null) listener.remove();
     }
 
     private void dibujar() {
