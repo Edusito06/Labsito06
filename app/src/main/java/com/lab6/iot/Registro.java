@@ -4,7 +4,7 @@ import com.google.firebase.firestore.DocumentId;
 
 /** Modelo guardado en Cloud Firestore: usuarios/{uid}/registros/{id} */
 public class Registro {
-    public static final String[] TIPOS = {"Temperatura", "Humedad", "Luz"};
+    public static final String[] TIPOS = {"Estudio", "Lectura", "Break"};
 
     @DocumentId
     public String id;

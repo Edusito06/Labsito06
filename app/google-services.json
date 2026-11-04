@@ -1,20 +1,46 @@
 {
   "project_info": {
-    "project_number": "000000000000",
-    "project_id": "REEMPLAZAR-con-tu-google-services-json",
-    "storage_bucket": "REEMPLAZAR.appspot.com"
+    "project_number": "1038080849404",
+    "project_id": "lab6-20227163",
+    "storage_bucket": "lab6-20227163.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:000000000000:android:0000000000000000",
+        "mobilesdk_app_id": "1:1038080849404:android:aafa61fff8f9689acdee79",
         "android_client_info": {
           "package_name": "com.lab6.iot"
         }
       },
+      "oauth_client": [
+        {
+          "client_id": "1038080849404-ijrle75gpne9ep0vt8ltumdg0fhhgg3l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.lab6.iot",
+            "certificate_hash": "a7172c4bf4765be96ba6dba060cfbe9221c677ab"
+          }
+        },
+        {
+          "client_id": "1038080849404-t1cbg4qhcb44abmkjrlqc7v8d91q35od.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
-        { "current_key": "REEMPLAZAR" }
-      ]
+        {
+          "current_key": "AIzaSyCea8Tt-JprHkQrEa1A2mNgf1ZR6pW5ly4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1038080849404-t1cbg4qhcb44abmkjrlqc7v8d91q35od.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"
